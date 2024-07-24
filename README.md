@@ -1,4 +1,4 @@
-# ADAPT it! Automating APT Campaign and Group Attribution by Leveraging and Linking Heterogeneous Files
+# ADAPT it! Automating APT Campaign and Group Attribution by Linking Heterogeneous Files
 
 Recent years have witnessed a surge in the growth of Advanced Persistent Threats (APTs), with significant challenges to the security landscape, affecting industry, governance, and democracy. The ever-growing number of actors and the complexity of their campaigns have made it difficult for defenders to track and attribute these malicious activities effectively.
 Traditionally, researchers relied on threat intelligence to track APTs. However, this often led to fragmented information, delays in connecting campaigns with specific threat groups, and misattribution.

@@ -49,20 +49,20 @@ python feature_processing.py
 
 2. **Run the Notebooks**: Several Jupyter notebooks are included for specific analyses:
 
-CampaignDocumentDomain.ipynb: Focuses on analyzing document-related features for campaign attribution.
-CampaignExecutableDomain.ipynb: Focuses on analyzing executable-related features for campaign attribution.
-GroupAttribution.ipynb: Provides an in-depth approach to group attribution based on the extracted features.
+- CampaignDocumentDomain.ipynb: Focuses on analyzing document-related features for campaign attribution.
+- CampaignExecutableDomain.ipynb: Focuses on analyzing executable-related features for campaign attribution.
+- GroupAttribution.ipynb: Provides an in-depth approach to group attribution based on the extracted features.
 
 
 
 ## Contribution
 We welcome contributions! If you would like to contribute to ADAPT, follow these steps:
 
-Fork the repository.
-Create a new branch (git checkout -b feature/YourFeature).
-Commit your changes (git commit -m 'Add new feature').
-Push to the branch (git push origin feature/YourFeature).
-Open a pull request.
+* Fork the repository.
+* Create a new branch (git checkout -b feature/YourFeature).
+* Commit your changes (git commit -m 'Add new feature').
+* Push to the branch (git push origin feature/YourFeature).
+* Open a pull request.
 
 ## License
 

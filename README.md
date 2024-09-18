@@ -18,6 +18,9 @@ ADAPT has been tested and validated on a comprehensive dataset of APT samples:
 *ADAPTDataset*: A collection of 6,134 APT samples belonging to 92 threat groups. This dataset has been label-standardized for consistent evaluation across different groups.
 
 
+*TestSampleswFeatures_10*: A collection of 10 samples with extracted raw features. (Note: Please exercise caution when downloading and extracting the zip file, as it contains APT malware samples.)
+
+
 
 ## Features
 - A dataset of heterogeneous file types, including executables and documents.

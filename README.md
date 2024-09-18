@@ -67,8 +67,13 @@ We welcome contributions! If you would like to contribute to ADAPT, follow these
 * Push to the branch (git push origin feature/YourFeature).
 * Open a pull request.
 
-## License
+## Note Regarding Dataset Availability
 
+Due to the nature of the dataset, which contains APT malware samples, and the file size restrictions imposed by GitHub, we are unable to upload the samples and the associated feature files to this repository.
+
+If you require access to the dataset for research or academic purposes, please contact the individual listed below for further information and access instructions.
+
+Thank you for your understanding.
 
 ## Contact
 If you have any questions or encounter issues, feel free to open an issue on GitHub or contact the project maintainers directly.

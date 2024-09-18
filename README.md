@@ -21,12 +21,22 @@ The system has been evaluated using MITRE datasets, alongside a standardized dat
    git clone https://github.com/SecPriv/adapt.git
    cd adapt
 
+   
+2.  **Install dependencies**: Ensure you have Python 3.x and install the required libraries:
+   ```bash
+    pip install -r requirements.txt
+    
 
-2.  **Install dependencies:** Ensure you have Python 3.x and install the required libraries:
-```bash
-pip install -r requirements.txt
+## Running the System
 
-3. **Run the feature generator:** Follow the steps in the provided Jupyter notebooks to process APT samples using the feature generation script.
-```bash
+1. **Generate Features**: Use the feature generation script to process APT samples:
+
 python feature_processing.py
+
+2. **Run the Notebooks**: Several Jupyter notebooks are included for specific analyses:
+
+CampaignDocumentDomain.ipynb: Focuses on analyzing document-related features for campaign attribution.
+CampaignDocumentDomain.ipynb: Focuses on analyzing document-related features for campaign attribution.
+GroupAttribution.ipynb: Provides an in-depth approach to group attribution based on the extracted features.
+
 

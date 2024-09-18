@@ -73,7 +73,6 @@ Due to the nature of the dataset, which contains APT malware samples, and the fi
 
 If you require access to the dataset for research or academic purposes, please contact the individual listed below for further information and access instructions.
 
-Thank you for your understanding.
 
 ## Contact
 If you have any questions or encounter issues, feel free to open an issue on GitHub or contact the project maintainers directly.

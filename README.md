@@ -14,6 +14,7 @@ ADAPT addresses this by leveraging various file types (executables, documents, e
 ADAPT has been tested and validated on a comprehensive dataset of APT samples:
 
 *MITRE Reference Dataset*: Includes real-world samples for evaluating the accuracy of campaign and group attribution.
+
 *Custom APT Dataset*: A collection of 6,134 APT samples belonging to 92 threat groups. This dataset has been label-standardized for consistent evaluation across different groups.
 
 
@@ -42,7 +43,8 @@ ADAPT has been tested and validated on a comprehensive dataset of APT samples:
 
 1. **Generate Features**: Use the feature generation script to process APT samples:
 
-```bash python feature_processing.py
+```bash
+python feature_processing.py
 ```
 
 2. **Run the Notebooks**: Several Jupyter notebooks are included for specific analyses:

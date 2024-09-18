@@ -13,9 +13,9 @@ ADAPT addresses this by leveraging various file types (executables, documents, e
 ## Dataset
 ADAPT has been tested and validated on a comprehensive dataset of APT samples:
 
-*MITRE Reference Dataset*: Includes real-world samples for evaluating the accuracy of campaign and group attribution.
+*CampaignGroupTags_TestSet.csv*: Includes real-world samples for evaluating the accuracy of campaign and group attribution.
 
-*Custom APT Dataset*: A collection of 6,134 APT samples belonging to 92 threat groups. This dataset has been label-standardized for consistent evaluation across different groups.
+*ADAPTDataset*: A collection of 6,134 APT samples belonging to 92 threat groups. This dataset has been label-standardized for consistent evaluation across different groups.
 
 
 

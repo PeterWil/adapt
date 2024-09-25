@@ -5,7 +5,7 @@
 ADAPT is a machine learning-based tool designed to automate the attribution of Advanced Persistent Threat (APT) campaigns and threat groups. In recent years, APTs have posed significant security challenges, affecting industries, governance, and democracies worldwide. These sophisticated threats are difficult to track and attribute, traditionally relying on fragmented intelligence and often resulting in misattribution.
 
 ADAPT addresses this by leveraging various file types (executables, documents, etc.) to link files associated with APT campaigns. It identifies connections at two levels:
-1. **Campaign Level**: Cluster malicious files with similar objectives.
+1. **Threat Campaign Level**: Cluster malicious files with similar objectives.
 2. **Threat Group Level**: Associate samples operated by the same threat actor.
 
 

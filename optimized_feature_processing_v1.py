@@ -1690,8 +1690,8 @@ import tqdm
 async def main():
     # FILE_HASH = "8b6380534dcae5830e1e194f8c54466db365246cb8df998686f04818e37d84c1"
     FLOSS_EXECUTABLE_PATH = "bins/floss2.2.exe"
-    BASE_DIR = r"C:\Users\ricewater\Documents\AV_2022_Dataset\new_destination"
-    #BASE_DIR = r"C:\Users\ricewater\Documents\MITREandCrowdstrikeApr2024Samples"
+    BASE_DIR = r"provide\the\folderpath\malware\samples"
+
 
     for file_hash in tqdm.tqdm(os.listdir(BASE_DIR)):
         root_dir = os.path.join(BASE_DIR, file_hash)

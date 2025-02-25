@@ -219,7 +219,7 @@ class Util:
 
 
     @cache
-    def is_popular_domain(self, url, top_domains=r'C:\Users\ricewater\Documents\RawFeaturesfromTools\top500Domains.csv'):
+    def is_popular_domain(self, url, top_domains=r'data\top_500_domains.csv'):
         is_top_domain = False
         try:
             domain_address = urlparse(url).netloc

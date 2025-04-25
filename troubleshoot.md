@@ -143,15 +143,16 @@ def compute_embeddings(self, data):
     # This function loops over selected columns and applies embedding-based normalization using string_feature_embed_similarity.
 ```
 - **`util.py`**
-Core Embedding and Similarity Logic
-Similarity Computation: Computes cosine similarity between embeddings. For each value find similar entries above a given threshold.
+
+Similarity Computation: Computes cosine similarity between embeddings. 
+For each value, find similar entries above a given threshold.
 
 ```python
 def compute_similar_candidates(self, unique_values_sets, doc_emb, sim_threshold=0.9) -> dict:
     ...
 Returns a mapping: {original_value: [similar_candidates...]}.
 ```
-This is where the following computation happens. 
+Below is where the following computation happens. 
 ```python
 scores = torch.mm(query_emb, doc_emb.transpose(0, 1)).squeeze()
 scores_list = scores.cpu().tolist()

@@ -18,7 +18,10 @@ issues may arise. This guide outlines key modules, common pitfalls, and optimiza
 
 ## Input Structure
 
-downloaded_samples_folder/ ├── 0123abcd…/ │ ├── 0123abcd… # Sample file (PDF, EXE, DOC, etc.) │ ├── 0123abcd….json # VT metadata file (required for Censys queries)
+downloaded_samples_folder/
+ ├── 0123abcd…/
+  ├── 0123abcd…        # Sample file (PDF, EXE, DOC, etc.)
+  ├── 0123abcd….json    # VT metadata file (required for Censys queries)
 
  **Note:**  
 The presence of the `{file_hash}.json` VT metadata file is **crucial**.  

@@ -1,22 +1,14 @@
 # ADAPT – Troubleshooting & Developer Guide
 
-As researchers, we aim to make our code fully reproducible.However, due to the evolving nature of third-party APIs, tools, and malware samples, 
-issues may arise. This guide outlines key modules, common pitfalls, and optimization tips for working and extending the ADAPT pipeline.
+As researchers, we aim to make our code fully reproducible. However, due to the evolving nature of third-party APIs, tools, and malware samples, 
+issues may arise. This guide outlines key modules, common pitfalls, and optimization tips for working and extending the ADAPT.
 
 ---
 
 ## Key Modules & Dependencies
 
-- **`feature_processing.py`**  
-  Uses **individual regex pattern matching** – flexible but slower.  
-  Best for debugging or small datasets.
-
-- **`optimized_feature_processing_v1.py`**  
-  Uses **a single combined regex** with named groups – faster, more memory-efficient.  
-  Skips strings longer than 2000 characters to avoid timeouts and memory issues.
-
 - **Third-party tools & APIs:**  
-  - Censys API  
+  - [Censys API](https://search.censys.io/api)
   - [lief](https://lief.quarkslab.com/)  
   - [oletools](https://github.com/decalage2/oletools)  
   - [malcat yara](https://malcat.fr/)  
@@ -24,13 +16,9 @@ issues may arise. This guide outlines key modules, common pitfalls, and optimiza
 
 ---
 
-## 📂 Input Structure
+## Input Structure
 
-Expected sample directory format:
-/downloaded_samples_folder/
-    ├── 0123abcd…/
-    │   ├── 0123abcd…           # Sample file (PDF, EXE, DOC, etc.)
-    │   ├── 0123abcd….json      # VT metadata file (required for Censys queries)
+downloaded_samples_folder/ ├── 0123abcd…/ │ ├── 0123abcd… # Sample file (PDF, EXE, DOC, etc.) │ ├── 0123abcd….json # VT metadata file (required for Censys queries)
 
  **Note:**  
 The presence of the `{file_hash}.json` VT metadata file is **crucial**.  
@@ -96,10 +84,7 @@ These must be set in your system or runtime environment and avoid hardcoding the
 These credentials are required to authenticate your requests with the Censys API and fetch metadata reliably.
 
 The Censys responses can change over time depending on how Censys structures its API.
-Refer to the following code block in case the response strutcture from Censys is not producing expected results.
-
-def censys_certificate_data(domain_name: str, sample_left_date: datetime, sample_right_date: str = "*") -> list:
-    sample_left_date_str = sample_left_date.strftime("%Y-%m-%d")
+Refer to the following code block in case the response structure from Censys is not producing expected results.
 
 ```python
 def censys_certificate_data(domain_name: str, sample_left_date: datetime, sample_right_date: str = "*") -> list:

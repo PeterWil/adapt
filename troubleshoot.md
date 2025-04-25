@@ -1,7 +1,7 @@
 # ADAPT – Troubleshooting & Developer Guide
 
 As researchers, we aim to make our code fully reproducible. However, due to the evolving nature of third-party APIs, tools, and malware samples, 
-issues may arise. This guide outlines key modules, common pitfalls, and optimization tips for working and extending the ADAPT.
+issues may arise. This guide outlines key modules, common pitfalls, and optimization tips for working and extending ADAPT.
 
 ---
 
@@ -21,8 +21,8 @@ issues may arise. This guide outlines key modules, common pitfalls, and optimiza
 
 /downloaded_samples_folder/  
 ├── 0123abcd…/  
-│   ├── 0123abcd…           # Sample file (PDF, EXE, DOC, etc.)  
-│   ├── 0123abcd….json      # VT metadata file (required for Censys queries)
+   ├── 0123abcd…           # Sample file (PDF, EXE, DOC, etc.)  
+   ├── 0123abcd….json      # VT metadata file (required for Censys queries)
 
 
  **Note:**  
@@ -122,13 +122,14 @@ After feature extraction, your folder structure should look like this.
 
 ## Group Attribution & Embedding-Based Feature
 
-The `groupAttribution.ipynb` notebook performs clustering of malware samples based on extracted group-level features. It merges features from several sources: 
+The `groupAttribution.ipynb` notebook performs clustering of malware samples based on extracted group-level features. 
+It merges features from several sources: 
 - exiftool metadata  
 - malcat rule matches  
 - regex-matched patterns  
 - censys data  
 
-These features often include string-based metadata (e.g., authors, company names, email addresses), which can be semantically similar even if lexically different. To normalize these and group similar entries, ADAPT computes text embeddings using a transformer-based language model.
+These features often include string-based metadata (e.g., authors, company names, email addresses), which can be semantically similar even if lexically different. To normalize these and group similar entries, ADAPT computes text embeddings using a transformer-based language model (Model Name: `sentence-transformers/multi-qa-MiniLM-L6-cos-v1`).
 
 ---
 

@@ -104,18 +104,84 @@ def censys_certificate_data(domain_name: str, sample_left_date: datetime, sample
 
 ## Expected Output Folder Structure
 
-After feature extraction your folder structure should like this. 
+After feature extraction, your folder structure should look like this. 
+
 
 /downloaded_samples_folder/  
 ├── 0123abcd…/  
-│   ├── 0123abcd…                                     # Sample file (PDF, EXE, DOC, etc.)  
-│   ├── 0123abcd….json                                # VT metadata file (required for Censys cert queries)  
-│   ├── censys_features_withhostdata.json  
-│   ├── exiftool_results.json  
-│   ├── flossresults_reduced_7.json  
-│   ├── lief_features.json                            # Present only for PE (executable) files  
-│   ├── malcatYararesults.json  
-│   ├── oletool_features_updated.json  
-│   └── regex_results.json
+   ├── 0123abcd…                    # Sample file (PDF, EXE, DOC, etc.)  
+   ├── 0123abcd….json               # VT metadata file (required for Censys cert queries)  
+   ├── censys_features_withhostdata.json  
+   ├── exiftool_results.json  
+   ├── flossresults_reduced_7.json  
+   ├── lief_features.json           # Present only for PE (executable) files  
+   ├── malcatYararesults.json  
+   ├── oletool_features_updated.json  
+   └── regex_results.json
+
+
+## Group Attribution & Embedding-Based Feature
+
+The `groupAttribution.ipynb` notebook performs clustering of malware samples based on extracted group-level features. It merges features from several sources: 
+- exiftool metadata  
+- malcat rule matches  
+- regex-matched patterns  
+- censys data  
+
+These features often include string-based metadata (e.g., authors, company names, email addresses), which can be semantically similar even if lexically different. To normalize these and group similar entries, ADAPT computes text embeddings using a transformer-based language model.
+
+---
+
+### Embedding Computation Pipeline
+
+The core logic for embedding-based feature normalization is implemented in the following files:
+
+- **`group_features.py`**
+```python
+def compute_embeddings(self, data):
+    # This function loops over selected columns and applies embedding-based normalization using string_feature_embed_similarity.
+```
+- **`util.py`**
+Core Embedding and Similarity Logic
+Similarity Computation: Computes cosine similarity between embeddings. For each value find similar entries above a given threshold.
+
+```python
+def compute_similar_candidates(self, unique_values_sets, doc_emb, sim_threshold=0.9) -> dict:
+    ...
+Returns a mapping: {original_value: [similar_candidates...]}.
+```
+This is where the following computation happens. 
+```python
+scores = torch.mm(query_emb, doc_emb.transpose(0, 1)).squeeze()
+scores_list = scores.cpu().tolist()
+```
+torch.mm creates a full similarity vector for each input string, and if you have 10,000 unique values, you’re creating and holding a 10,000 x 10,000 similarity matrix. That's 100M floats (~400MB just for the scores).
+
+And finally, the below function performs normalization that includes extracting unique strings from the column, embedding them using a transformer, and finding similar values using cosine similarity.
+
+```python
+ def string_feature_embed_similarity(self, data, column, tokenizer, model, similarity_threshold=0.70) -> pd.Series:
+```
+
+### Memory Considerations
+
+Computing embeddings for a large number of unique strings can consume significant memory, especially on machines without GPUs or with limited VRAM.
+
+#### Possible Error:
+
+```plaintext
+RuntimeError: CUDA out of memory
+```
+
+### Solutions:
+
+- Use `encode_list_of_texts_batched()` instead of the full-text version.
+- Reduce batch size (e.g., `batch_size=16`).
+- Filter very long strings (e.g., skip strings longer than 2000 characters).
+- Consider switching to a smaller transformer model (e.g., `distilbert` instead of `bert-large`).
+- Run on CPU (slower but safer): comment out `.to(device)` or set `device = torch.device("cpu")`.
+
+Feel free to open issues or pull requests if you encounter any bugs or improvements!
+
 
 

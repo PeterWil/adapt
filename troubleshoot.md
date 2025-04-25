@@ -101,3 +101,19 @@ def censys_certificate_data(domain_name: str, sample_left_date: datetime, sample
     )
 ```
 
+
+## Expected Output Folder Structure
+
+/downloaded_samples_folder/  
+├── 0123abcd…/  
+│   ├── 0123abcd…                    # Sample file (PDF, EXE, DOC, etc.)  
+│   ├── 0123abcd….json               # VT metadata file (required for Censys cert queries)  
+│   ├── censys_features_withhostdata.json  
+│   ├── exiftool_results.json  
+│   ├── flossresults_reduced_7.json  
+│   ├── lief_features.json           # Present only for PE (executable) files  
+│   ├── malcatYararesults.json  
+│   ├── oletool_features_updated.json  
+│   └── regex_results.json
+
+

@@ -173,8 +173,9 @@ Additionally, certain scenarios can increase processing time:
 - Large Malware Samples: Samples larger than 20 MB and with huge string content (evidenced by large FLOSS output files) can slow down embedding generation.
   
 - Agglomerative Clustering: This step can be computationally expensive, particularly if:
+
        - You're clustering a large number of samples, or
-       - You're trying more than ~50 clusters — this can increase runtime due to pairwise distance computations and hierarchical merging.
+       - You're trying more than ~50 clusters, which can increase runtime due to pairwise distance computations and hierarchical merging.
 
 
 #### Possible Error:

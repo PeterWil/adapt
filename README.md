@@ -71,13 +71,14 @@ We welcome contributions! If you would like to contribute to ADAPT, follow these
 
 Due to the nature of the dataset, which contains APT malware samples, and the file size restrictions imposed by GitHub, we are unable to upload the samples and the associated feature files to this repository.
 
-If you require access to the dataset for research or academic purposes, please contact the individual listed below for further information and access instructions.
+If you require access to the dataset for research or academic purposes, please contact us at the email address below for further information and access instructions.
 
 
 ## Contact
 If you have any questions or encounter issues, feel free to open an issue on GitHub or contact the project maintainers directly.
 
-- **[Aakanksha Saha](aakanksha.saha@seclab.wien)** 
+- **[Aakanksha Saha](aakanksha.saha@seclab.wien)**
+- **[System Admin](secpriv.sysadmin@tuwien.ac.at)**
 
 
 

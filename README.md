@@ -77,8 +77,8 @@ If you require access to the dataset for research or academic purposes, please c
 ## Contact
 If you have any questions or encounter issues, feel free to open an issue on GitHub or contact the project maintainers directly.
 
-- **[Aakanksha Saha](aakanksha.saha@seclab.wien)**
-- **[System Admin](secpriv.sysadmin@tuwien.ac.at)**
+- **[Aakanksha Saha](mailto:aakanksha.saha@seclab.wien)**
+- **[System Admin](mailto:secpriv.sysadmin@tuwien.ac.at)**
 
 
 

@@ -2,7 +2,9 @@ import configparser
 import os
 feature_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
-DEFAULT_CONFIG_FILE = os.path.join(feature_directory, "config\projectconfig.ini")
+# CHANGED: THIS ONLY WORKS ON WINDOWS. NEED TO MAKE IT GENERIC
+#DEFAULT_CONFIG_FILE = os.path.join(feature_directory, "config\projectconfig.ini")
+DEFAULT_CONFIG_FILE = os.path.join(feature_directory, "config", "projectconfig.ini")
 
 class Config():
     def __init__(self, config_file = DEFAULT_CONFIG_FILE) -> None:
@@ -31,6 +33,7 @@ class Config():
     
     def get_adversary_mapping(self) -> str:
         adversary_mapping = self.config["groundtruth"]["adversary_mapping"]
+        print(adversary_mapping)
         return adversary_mapping
     
     def get_lief_filename(self) -> str:

@@ -17,7 +17,8 @@ from typing import Any, Dict, Literal, Optional, Union
 from urllib.parse import urlparse
 
 import aiofiles
-import censys
+#import censys # This library has been depricated
+#import censys_platform # Currently using the web api instead as the new library has limited functionality
 import lief
 import pandas as pd
 import tldextract
@@ -25,13 +26,16 @@ import yara
 
 # https://github.com/censys/censys-python
 # https://github.com/censys/censys-python
-from censys.search import CensysCerts, CensysHosts
+#from censys.search import CensysCerts, CensysHosts # These have been deprecated
 from oletools import rtfobj
 from oletools.oleid import OleID
 from oletools.olevba import VBA_Parser
 from PyPDF2 import PdfReader
 
-NON_COMMERCIAL_API_LIMIT = 1000
+# CONTROL LOGIC
+dummy_censys_calls = True # We have a limited number of censys API calls so only do this when we need to, e.g. not when testing other parts
+
+#NON_COMMERCIAL_API_LIMIT = 1000
 
 
 logger = logging.getLogger(__name__)
@@ -49,9 +53,74 @@ floss_executable_path = "bins/floss2.2.exe"
 top_500_domains = "data/top_500_domains.csv"
 censys_api_id = os.getenv("CENSYS_API_ID")
 censys_api_secret = os.getenv("CENSYS_API_SECRET")
-censys_certificates = CensysCerts(api_id=censys_api_id, api_secret=censys_api_secret)
-censys_hosts = CensysHosts(api_id=censys_api_id, api_secret=censys_api_secret)
 
+# TODO: How do I replace this? This is DEPRICATED
+#censys_certificates = CensysCerts(api_id=censys_api_id, api_secret=censys_api_secret)
+#censys_hosts = CensysHosts(api_id=censys_api_id, api_secret=censys_api_secret)
+
+# TODO: NEW FUNCTIONS TO REPLACE DEPRICATED ONES
+import httpx
+import sys
+
+def censys_host_data(ip_address, token=censys_api_secret):
+    """
+    Perform a host lookup using the Censys Platform API.
+
+    Args:
+        ip_address (str): IP address to look up.
+        token (str): Personal Access Token (PAT) for authentication.
+
+    Returns:
+        dict: JSON response from the API or error message.
+    """
+    if dummy_censys_calls:
+        print(f"Use Censys to lookup {ip_address}")
+        return {"dummy": f"dummy lookup for {ip_address}"}
+
+    url = f"https://api.platform.censys.io/v3/global/asset/host/{ip_address}"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "Accept: application/vnd.censys.api.v3.host.v1+json"
+    }
+
+    try:
+        response = httpx.get(url, headers=headers)
+        response.raise_for_status()
+        return response.json()
+    except httpx.HTTPStatusError as e:
+        return {"error": f"HTTP error {e.response.status_code}: {e.response.text}"}
+    except httpx.RequestError as e:
+        return {"error": f"Request error: {str(e)}"}
+
+def censys_webproperty_data(webproperty_id, token=censys_api_secret):
+    """
+    Perform a host lookup using the Censys Platform API.
+
+    Args:
+        ip_address (str): web-prperty to look up.
+        token (str): Personal Access Token (PAT) for authentication.
+
+    Returns:
+        dict: JSON response from the API or error message.
+    """
+    if dummy_censys_calls:
+        print(f"Use Censys to lookup {webproperty_id}")
+        return {"dummy": f"dummy lookup for {webproperty_id}"}
+
+    url = f"https://api.platform.censys.io/v3/global/asset/webproperty/{webproperty_id}:80"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "Accept: application/vnd.censys.api.v3.host.v1+json"
+    }
+
+    try:
+        response = httpx.get(url, headers=headers)
+        response.raise_for_status()
+        return response.json()
+    except httpx.HTTPStatusError as e:
+        return {"error": f"HTTP error {e.response.status_code}: {e.response.text}"}
+    except httpx.RequestError as e:
+        return {"error": f"Request error: {str(e)}"}
 
 def get_first_submission_date(vt_meta: dict[str, Any]):
     first_submission_date = vt_meta["attributes"]["first_submission_date"]
@@ -1536,7 +1605,8 @@ async def regex_fun(path_to_json: str, file_hash: str, subdir: str, reprocess: b
     except Exception as e:
         logging.exception("Exception occurred while processing file %s: %s", path_to_json, e)
 
-
+'''
+# REMOVED
 def censys_ip_data(ip: str) -> dict:
     """
     Fetches host data for a given IP address from Censys.
@@ -1556,8 +1626,10 @@ def censys_ip_data(ip: str) -> dict:
         # Log error or handle it as per your logging setup
         print(f"Error fetching data for IP {ip}: {str(e)}")
         return {}
+'''
 
-
+'''
+#REMOVED
 def censys_host_data(domain_name: str) -> list:
     """
     Fetches host data for a given domain name from Censys.
@@ -1574,8 +1646,10 @@ def censys_host_data(domain_name: str) -> list:
         domain_host_result.append(search_result_host)
 
     return domain_host_result
+'''    
 
-
+'''
+#REMOVED
 def censys_certificate_data(
     domain_name: str, sample_left_date: datetime, sample_right_date: str = "*"
 ) -> list:
@@ -1634,7 +1708,7 @@ def censys_certificate_data(
         domain_cert_data.append(cert_data_fields)
 
     return domain_cert_data
-
+'''
 
 def process_censys_file(
     regex_json_path: str,
@@ -1695,10 +1769,12 @@ def censys_features(
 
         try:
             censys_results[parsed_url] = {"CertificateData": [], "DomainData": []}
-            if first_submission:
-                certificate_data = censys_certificate_data(parsed_url, first_submission)
-                censys_results[parsed_url]["CertificateData"] = certificate_data
-            censys_results[parsed_url]["DomainData"] = censys_host_data(parsed_url)
+            #if first_submission:
+            #    certificate_data = censys_certificate_data(parsed_url, first_submission)
+            #    censys_results[parsed_url]["CertificateData"] = certificate_data
+            # UPDATED
+            #censys_results[parsed_url]["DomainData"] = censys_host_data(parsed_url)
+            censys_results[parsed_url]["DomainData"] = censys_webproperty_data(parsed_url)
         except Exception as e:
             print(f"Exception processing URL {parsed_url}: {e}")
 
@@ -1706,7 +1782,9 @@ def censys_features(
     for ip in ips:
         try:
             socket.inet_aton(ip)  # Validates IPv4 format
-            censys_results[ip] = {"IPData": censys_ip_data(ip)}
+            # UPDATED            
+            #censys_results[ip] = {"IPData": censys_ip_data(ip, )}
+            censys_results[ip] = {"IPData": censys_host_data(ip, )}
         except socket.error:
             logging.error(f"Invalid IP address format: {ip}")
         except Exception as e:
@@ -1806,8 +1884,8 @@ import tqdm
 async def main():
     # FILE_HASH = "8b6380534dcae5830e1e194f8c54466db365246cb8df998686f04818e37d84c1"
     FLOSS_EXECUTABLE_PATH = "bins/floss2.2.exe"
-    BASE_DIR = r"provide\the\folderpath\malware\samples"
-
+    # UPDATED: BASE_DIR = r"provide\the\folderpath\malware\samples"
+    BASE_DIR = "data/TestSampleswFeatures_10"
 
     for file_hash in tqdm.tqdm(os.listdir(BASE_DIR)):
         root_dir = os.path.join(BASE_DIR, file_hash)

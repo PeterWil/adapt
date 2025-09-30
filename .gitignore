@@ -1,3 +1,9 @@
+# Ignore my playpen experiments
+ignore_*
+
+# Ignore the error logs
+logger_file
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -27,6 +33,7 @@ venv/
 .env/
 .venv/
 env/
+.env
 
 # Distribution / packaging
 .Python

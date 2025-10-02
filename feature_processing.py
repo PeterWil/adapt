@@ -32,9 +32,6 @@ from oletools.oleid import OleID
 from oletools.olevba import VBA_Parser
 from PyPDF2 import PdfReader
 
-# CONTROL LOGIC
-dummy_censys_calls = True # We have a limited number of censys API calls so only do this when we need to, e.g. not when testing other parts
-
 #NON_COMMERCIAL_API_LIMIT = 1000
 
 
@@ -55,6 +52,7 @@ censys_api_id = os.getenv("CENSYS_API_ID")
 censys_api_secret = os.getenv("CENSYS_API_SECRET")
 
 # TODO: How do I replace this? This is DEPRICATED
+# Have to wait until I get more tokens to work this out
 #censys_certificates = CensysCerts(api_id=censys_api_id, api_secret=censys_api_secret)
 #censys_hosts = CensysHosts(api_id=censys_api_id, api_secret=censys_api_secret)
 
@@ -73,10 +71,7 @@ def censys_host_data(ip_address, token=censys_api_secret):
     Returns:
         dict: JSON response from the API or error message.
     """
-    if dummy_censys_calls:
-        print(f"Use Censys to lookup {ip_address}")
-        return {"dummy": f"dummy lookup for {ip_address}"}
-
+    
     url = f"https://api.platform.censys.io/v3/global/asset/host/{ip_address}"
     headers = {
         "Authorization": f"Bearer {token}",
@@ -94,19 +89,16 @@ def censys_host_data(ip_address, token=censys_api_secret):
 
 def censys_webproperty_data(webproperty_id, token=censys_api_secret):
     """
-    Perform a host lookup using the Censys Platform API.
+    Perform a webproperty lookup using the Censys Platform API.
 
     Args:
-        ip_address (str): web-prperty to look up.
+        webproperty_id (str): web-prperty to look up.
         token (str): Personal Access Token (PAT) for authentication.
 
     Returns:
         dict: JSON response from the API or error message.
     """
-    if dummy_censys_calls:
-        print(f"Use Censys to lookup {webproperty_id}")
-        return {"dummy": f"dummy lookup for {webproperty_id}"}
-
+    
     url = f"https://api.platform.censys.io/v3/global/asset/webproperty/{webproperty_id}:80"
     headers = {
         "Authorization": f"Bearer {token}",
@@ -130,7 +122,7 @@ def get_first_submission_date(vt_meta: dict[str, Any]):
 def extract_ole_features(
     metadata: dict[str, Any],
     output_directory: str,
-    filename: str = "oletool_features_updated.json",
+    path_to_out_file,
 ) -> None:
     """Extracts the OLE features from a given file and writes them to a JSON file.
 
@@ -139,10 +131,6 @@ def extract_ole_features(
         output_directory (str): The directory to write the JSON file to.
         filename (str, optional): The name of the JSON file to write the OLE features to. Defaults to "oletool_features_updated.json".
     """
-    file_path = os.path.join(output_directory, filename)
-    if os.path.exists(file_path):
-        return
-
     ole_features = defaultdict(dict)
     sample_hash = os.path.basename(os.path.normpath(output_directory))
     file_type = metadata.get("FileType", "")
@@ -156,11 +144,11 @@ def extract_ole_features(
             file_to_process, file_type=file_type
         )
         if ole_features[sample_hash]:
-            write_features_to_file(ole_features, file_path)
+            write_features_to_file(ole_features, path_to_out_file)
     except Exception as e:
         logging.info(f"Exception occurred for sample {output_directory}: {e}")
         if ole_features:
-            write_features_to_file(ole_features, file_path)
+            write_features_to_file(ole_features, path_to_out_file)
 
 
 def is_supported_file_type(file_type: str) -> bool:
@@ -227,6 +215,9 @@ def extract_rtf_features(file: str) -> dict[str, str]:
     features = {"rtfobject": {}}
     for index, orig_len, data in rtfobj.rtf_iter_objects(file):
         features["rtfobject"][hex(index)] = f"size {len(data)}"
+
+    # TODO: What if it contains on object, like a spreadsheet that may itself have VBA
+    # Should we call the vba feature extraction on each of them?
     return features
 
 
@@ -313,6 +304,7 @@ def extract_pdf_text(page):
     Returns:
         str: Extracted text from the first page of the PDF.
     """
+    #TODO: Why just the first page? And is it ever useful?
     try:
         return page.extract_text() or "No text found"
     except Exception as e:
@@ -346,7 +338,8 @@ def pdf_feature(file_name):
 
     return feature_set
 
-
+# TODO: Looks like it's called for all filetypes?
+# TODO: What else do we do for EXEs?
 def get_exiftool_json(
     file_path: str, parsing_charset: str = "latin1"
 ) -> Optional[Union[dict[str, Any], None]]:
@@ -384,7 +377,12 @@ def get_exiftool_json(
         return None
 
 
-def process_document_file(file_path: str, output_directory: str) -> None:
+def process_document_file(
+    file_path: str,
+    output_directory: str,
+    output_filename: str = "oletool_features_updated.json",
+    reprocess = False
+) -> None:
     """
     Process a file to extract OLE features and write them to a JSON file.
 
@@ -396,16 +394,23 @@ def process_document_file(file_path: str, output_directory: str) -> None:
         file_path (str): The path to the file.
         output_directory (str): The directory to write the JSON file to.
     """
+    logging.info(f"Creating {output_filename} for: {file_path}")
+    path_to_out_file = os.path.join(output_directory, output_filename)
+    if os.path.exists(path_to_out_file) and not reprocess:
+        logging.info(f"Skipping processing as {path_to_out_file} already exists")        
+        return
+        
     metadata = get_exiftool_json(file_path)
     if metadata:
-        extract_ole_features(metadata, output_directory)
+        extract_ole_features(metadata, output_directory, path_to_out_file)
 
 
 def process_yara_rule(
     file_path: str,
     yara_rules_path: str,
-    output_dir: str,
-    result_filename: str = "malcatYaraResults.json",
+    output_directory: str,
+    output_filename: str = "malcatYaraResults.json",
+    reprocess = False
 ) -> None:
     """
     Applies YARA rules to a specified file and saves the matches in a JSON file.
@@ -420,8 +425,15 @@ def process_yara_rule(
         output_dir: Directory to save the results JSON file to.
         result_filename: Name of the JSON file to save the results to. Defaults to "malcatYaraResults.json".
     """
+    # Determine the path for the results JSON file
+    logging.info(f"Creating {output_filename} for: {file_path}")
+    path_to_out_file = os.path.join(output_directory, output_filename)
+    if os.path.exists(path_to_out_file) and not reprocess:
+        logging.info(f"Skipping processing as {path_to_out_file} already exists")        
+        return   
+    
     # Compile YARA rules from the specified file path
-    logging.info(f"Processing Yara rules for {file_path}")
+    # logging.info(f"Processing Yara rules for {file_path}")
     rules = yara.compile(
         filepath=yara_rules_path, includes=True, error_on_warning=False
     )
@@ -434,11 +446,8 @@ def process_yara_rule(
         for match in matches:
             yara_match[str(match)] = True
 
-        # Determine the path for the results JSON file
-        result_path = os.path.join(output_dir, result_filename)
-
         # Write the matches to the specified JSON file
-        with open(result_path, "w+") as f:
+        with open(path_to_out_file, "w+") as f:
             json.dump(yara_match, f, indent=4)
 
     except Exception as e:
@@ -446,12 +455,12 @@ def process_yara_rule(
             f"Error extracting the yara rules for the file path {file_path}: {e}"
         )
 
-
 async def process_floss_file(
     file_path: str,
     output_directory: str,
     floss_executable: str = "floss2.2.exe",
-    out_file_name: str = "flossresults_reduced_7.json",
+    output_filename: str = "flossresults_reduced_7.json",
+    reprocess = False,
 ) -> None:
     """
     Executes FLOSS on a specified file and saves the output to a JSON file.
@@ -468,15 +477,20 @@ async def process_floss_file(
         floss_executable: The path to the FLOSS executable. Defaults to "floss2.2.exe".
         out_file_name: The name of the output JSON file. Defaults to "flossresults_reduced_7.json".
     """
-    if not os.path.isfile(file_path):
-        logging.error(f"File does not exist: {file_path}")
+    logging.info(f"Creating {output_filename} for: {file_path}")
+    path_to_out_file = os.path.join(output_directory, output_filename)
+    if os.path.exists(path_to_out_file) and not reprocess:
+        logging.info(f"Skipping proicessing as {path_to_out_file} already exists")        
         return
 
     # Ensure the output directory exists
     if not os.path.exists(output_directory):
         os.makedirs(output_directory, exist_ok=True)
 
-    path_to_out_file = os.path.join(output_directory, out_file_name)
+    path_to_out_file = os.path.join(output_directory, output_filename)
+    if os.path.exists(path_to_out_file):
+        return
+    
     command = f'powershell {floss_executable} --json -n 7 -o "{path_to_out_file}" --no stack tight decoded -- "{file_path}"'
 
     process = await asyncio.create_subprocess_shell(
@@ -494,7 +508,8 @@ def process_exiftool(
     file_path: str,
     output_directory: str,
     encoding: str = "latin1",
-    output_file_name: str = "exiftool_results.json",
+    output_filename: str = "exiftool_results.json",
+    reprocess = False
 ) -> Optional[dict[str, Any]]:
     """
     Process a file to extract metadata using Exiftool and write it to a JSON file.
@@ -509,11 +524,15 @@ def process_exiftool(
         encoding (str): The encoding to use when processing the file. Defaults to "latin1".
         output_file_name (str): The name of the JSON file to write the Exiftool results to. Defaults to "exiftool_results.json".
     """
+    logging.info(f"Creating {output_filename} for: {file_path}")
+    path_to_out_file = os.path.join(output_directory, output_filename)
+    if os.path.exists(path_to_out_file) and not reprocess:
+        logging.info(f"Skipping proicessing as {path_to_out_file} already exists")        
+        return  
+        
     metadata = get_exiftool_json(file_path, encoding)
     if metadata:
-        write_features_to_file(
-            metadata, os.path.join(output_directory, output_file_name)
-        )
+        write_features_to_file(metadata, path_to_out_file)
     return metadata
 
 
@@ -529,6 +548,7 @@ def from_timestamp_to_date(timestamp: int) -> str:
     """
     if not timestamp:
         return None
+    # TODO: Fix deprecated function
     return datetime.utcfromtimestamp(timestamp).strftime("%b %d %Y at %H:%M:%S")
 
 
@@ -729,14 +749,15 @@ def check_binary_format(
     if not binary:
         return None
 
-    if binary.format == lief.EXE_FORMATS.PE:
-        if binary.header.characteristics & lief.PE.HEADER_CHARACTERISTICS.DLL:
+    # OLD CONSTANTS HAVE CHANGED
+    if binary.format == lief.PE.Binary.FORMATS.PE: # was lief.EXE_FORMATS.PE
+        if binary.header.characteristics & lief.PE.Header.CHARACTERISTICS.DLL.value:
             return "DLLfile"
         else:
             return "EXEfile"
-    elif binary.format == lief.EXE_FORMATS.MACHO:
+    elif binary.format == lief.PE.Binary.FORMATS.MACHO: # was lief.EXE_FORMATS.MACHO
         return "machofile"
-    elif binary.format == lief.EXE_FORMATS.ELF:
+    elif binary.format == lief.PE.Binary.FORMATS.ELF: # was EXE_FORMATS.ELF
         return "elffile"
 
     return None
@@ -887,6 +908,16 @@ def resources(binary: lief.PE.Binary, file_type: str) -> dict:
             if binary.resources.is_directory
             else "Data" if binary.resources.is_data else "Unknown"
         )
+
+        # This creates two sections "Resources" and "Resource Manager"
+
+        # RESOURCES
+
+        # These seem to always be the saem, in which case they're of no use
+        # For now let's just look to see it there are different ones
+        if binary.resources.name or binary.resources.depth != 0 or resource_type != "Directory" or hex(binary.resources.id) != "0x0":
+            breakpoint()
+
         feature_set["Resources"] = {
             "Name": binary.resources.name if binary.resources.has_name else "No name",
             "Number of childs": len(binary.resources.childs),
@@ -895,13 +926,22 @@ def resources(binary: lief.PE.Binary, file_type: str) -> dict:
             "Id": hex(binary.resources.id),
         }
 
+        # RESOURCE MANAGER
         resource_manager = {}
+
+        rsrc_directory = binary.data_directory(lief.PE.DataDirectory.TYPES.RESOURCE_TABLE)
+        if rsrc_directory.has_section:
+            resource_manager["Section_Name"] = rsrc_directory.section.name
+
         if binary.resources_manager.has_type:
-            resource_manager["Type"] = ", ".join(
-                str(rType) for rType in binary.resources_manager.types_available
+            resource_manager["Types"] = ", ".join(
+                # Library has changed
+                #str(rType) for rType in binary.resources_manager.types_available # no longer exists
+                rType.name for rType in binary.resources_manager.types
             )
 
-        if binary.resources_manager.langs_available:
+        # Langs are no longer available on the class, not found anywhere else yet to get them
+        '''if binary.resources_manager.langs_available:
             langs_available = ", ".join(
                 str(lang) for lang in binary.resources_manager.langs_available
             )
@@ -910,7 +950,43 @@ def resources(binary: lief.PE.Binary, file_type: str) -> dict:
             )
             resource_manager.update(
                 {"Language": langs_available, "Sub-language": sublangs_available}
-            )
+            )'''
+
+        # TODO: These additons may be useful, need to test and see
+        resources_manager = binary.resources_manager
+
+        if resources_manager.has_icons:
+            resource_manager["Icon Languages"] = ", ".join(
+                lief.PE.RESOURCE_LANGS(icon.lang).name for icon in resources_manager.icons
+            )            
+
+        # Version blocks may be useful to the model
+        if resources_manager.has_version:
+            version_data={}
+            # Do we ever have more than one version?
+            if len(resources_manager.version)!=1:
+                breakpoint()
+
+            for version in resources_manager.version:
+                # Do we ever have more than one child?
+                if len(version.string_file_info.children)!=1:
+                    breakpoint()
+
+                for block in version.string_file_info.children:
+                    for entry in block.entries:
+                        version_data[entry.key]=entry.value
+            resource_manager["Version"]=version_data
+
+        if resources_manager.has_dialogs:
+            # NEED TO TRAP ONE OF THESE TO SEE WHAT WE CAN GET FROM IT
+            for dialog in resources_manager.dialogs:
+                print (f"Dialog: {dialog}")
+            breakpoint
+
+        if resources_manager.has_accelerator:
+            # NEED TO TRAP ONE OF THESE TO SEE WHAT WE CAN GET FROM IT
+            print("accelerator", resources_manager.accelerator)                
+            breakpoint
 
         if resource_manager:
             feature_set["Resource manager"] = resource_manager
@@ -979,14 +1055,22 @@ def load_configuration(binary: lief.PE.Binary, file_type: str) -> dict:
     """
     if file_type in ["EXEfile", "DLLfile"] and binary.has_configuration:
         config = binary.load_configuration
+        # Test if need both, hopefully not, but different would be interesting
+        if config.se_handler_count != len(config.seh_functions):
+            breakpoint()
+
         return {
             "Configuration": {
-                "Version": str(config.version),
+                #"Version": str(config.version), # This no longer exists in the current library
                 "Characteristics": hex(config.characteristics),
                 "Timedatestamp": from_timestamp_to_date(config.timedatestamp),
                 "Major version": config.major_version,
                 "Minor version": config.minor_version,
                 "Security cookie": hex(config.security_cookie),
+                # TODO: These additons may be useful, need to test and see
+                "Size": config.size,
+                #"SE Handler Count": config.se_handler_count,
+                #"SE Handler Table": len(config.seh_functions)
             }
         }
     else:
@@ -1023,8 +1107,7 @@ def signature(pe: lief.PE.Binary, type_of_binary: str) -> dict[str, Any]:
             feature_set["Signature"]["Signer details"] = signer_details
 
     else:
-        # Assuming a logging mechanism or similar feedback for when signatures are not found
-        print("Warning: No signature found for the specified binary type.")
+        logger.info("No signature found for the specified binary type.")
 
     return feature_set
 
@@ -1176,7 +1259,9 @@ def interpreter(binary: lief.ELF.Binary, type_of_binary: str) -> dict[str, str]:
 
 
 def process_lief_features(
-    sample_file_path: str, output_directory: str
+    file_path: str,
+    output_directory: str,
+    reprocess = False
 ) -> dict[str, Any]:
     """
     Analyzes a binary file with LIEF and extracts various features, saving them as a JSON file.
@@ -1186,14 +1271,21 @@ def process_lief_features(
         output_directory: The directory where to save the features file.
 
     """
+    output_filename = "lief_features.json"
+    logging.info(f"Creating {output_filename} for: {file_path}")
+    path_to_out_file = os.path.join(output_directory, output_filename)
+    if os.path.exists(path_to_out_file) and not reprocess:
+        logging.info(f"Skipping processing as {path_to_out_file} already exists")        
+        #return  
+        
     final_result = {}
 
     try:
-        binary = lief.parse(sample_file_path)
+        binary = lief.parse(file_path)
         type_of_binary = check_binary_format(
             binary
         )  # Updated to use the refactored function name
-        logging.info(f"Processing LIEF features for hash: {sample_file_path} and file type {type_of_binary}")
+        logging.info(f"Processing LIEF features for hash: {file_path} and file type {type_of_binary}")
         if not type_of_binary:
             return final_result
         # Assuming each function returns a dictionary and takes `binary` and `type_of_binary` as arguments
@@ -1222,13 +1314,14 @@ def process_lief_features(
 
         # Iterating over each function and updating the final_result dictionary
         for func in functions:
-            result = func(binary, type_of_binary)
-            final_result.update(result)
+            try:
+                result = func(binary, type_of_binary)
+                final_result.update(result)
+            except Exception as e:
+                logger.exception("An exception occurred during the feature extraction for '%s': %s", func.__name__, e)
 
         # Writing the results to a JSON file
-        filename = "lief_features.json"
-        path_to_file = os.path.join(output_directory, filename)
-        with open(path_to_file, "w", encoding="utf-8") as f:
+        with open(path_to_out_file, "w", encoding="utf-8") as f:
             json.dump(final_result, f, indent=4)
 
     except Exception as e:
@@ -1347,13 +1440,12 @@ def is_valid_and_public_ip(ip: str) -> bool:
     except ValueError:
         return False
 
-
+# TODO: Looks like this isn't called
 def is_valid_windows_file_path(path: str) -> bool:
     pattern = r"(?:[a-zA-Z]:|\\\\[a-zA-Z0-9_.$]+\\[a-zA-Z0-9_.$]+)\\(?:[a-zA-Z0-9_.$]+\\)*[a-zA-Z0-9_.$]+\.(?:txt|gif|pdf|doc|docx|xls|xlsx|msg|log|rtf|key|dat|jpg|png|exe|bat|apk|jar|js|php|htm|html|dll|lnk)"
     return bool(re.match(pattern, path)) and len(path) <= 256
 
-
-
+# TODO: Looks like this isn't called
 def combine_patterns(patterns: dict[str, str]) -> re.Pattern:
     """
     Combines multiple regex patterns into a single pattern with named groups.
@@ -1369,7 +1461,7 @@ def combine_patterns(patterns: dict[str, str]) -> re.Pattern:
     )
     return re.compile(combined_pattern, re.MULTILINE | re.IGNORECASE)
 
-
+# TODO: Looks like this isn't called
 def extract_matches_combined(
     text: str, combined_regex: re.Pattern
 ) -> dict[str, list[str]]:
@@ -1395,7 +1487,7 @@ def extract_matches_combined(
                     results[name].append(value)
     return results
 
-
+# TODO: Are there other useful ones that have been missed?
 def get_regex_patterns() -> dict:
     """
     Defines regular expressions for various patterns.
@@ -1571,26 +1663,25 @@ def find_matches_with_combined_regex(text: str, combined_pattern: str) -> dict:
     # Convert sets to lists for JSON serialization
     return {name: list(matches) for name, matches in results.items()}
 
-async def regex_fun(path_to_json: str, file_hash: str, subdir: str, reprocess: bool = False, file_name: str = "regex_results.json") -> None:
-    logging.info(f"Processing REGEX features for filename: {file_name}")
-    result_filename = os.path.join(subdir, file_name)
-
-    if os.path.exists(result_filename) and not reprocess:
-        logging.info("Result file already exists: %s", result_filename)
-        return
+async def regex_fun(file_path: str, file_hash: str, output_directory: str, reprocess: bool = False, output_filename: str = "regex_results.json") -> None:
+    logging.info(f"Creating {output_filename} for: {file_path}")
+    path_to_out_file = os.path.join(output_directory, output_filename)
+    if os.path.exists(path_to_out_file) and not reprocess:
+        logging.info(f"Skipping processing as {path_to_out_file} already exists")        
+        return  
 
     combined_pattern = get_combined_regex_pattern()
 
     results: dict[str, dict[str, any]] = {file_hash: {}}
 
     try:
-        async with aiofiles.open(path_to_json, "r", encoding="utf-8") as f:
+        async with aiofiles.open(file_path, "r", encoding="utf-8") as f:
             raw_data = await f.read()
 
         data: dict[str, any] = json.loads(raw_data)
         all_strings = data.get("strings", {})
         if not all_strings:
-            raise ValueError(f"Error: Could not find strings in the provided file '{path_to_json}'")
+            raise ValueError(f"Error: Could not find strings in the provided file '{file_path}'")
 
         raw_static_strings = " ".join(s.get("string").strip() for s in all_strings.get("static_strings", []) if s.get("string"))
         
@@ -1599,11 +1690,11 @@ async def regex_fun(path_to_json: str, file_hash: str, subdir: str, reprocess: b
         
         results[file_hash] = details
 
-        async with aiofiles.open(result_filename, "w", encoding="utf-8") as f:
+        async with aiofiles.open(path_to_out_file, "w", encoding="utf-8") as f:
             await f.write(json.dumps(results, indent=4))
 
     except Exception as e:
-        logging.exception("Exception occurred while processing file %s: %s", path_to_json, e)
+        logging.exception("Exception occurred while processing file %s: %s", file_path, e)
 
 '''
 # REMOVED
@@ -1715,7 +1806,8 @@ def process_censys_file(
     vt_meta_file_path: str,
     file_hash: str,
     output_directory: str,
-    output_flie_name: str = "censys_features_withhostdata.json",
+    output_filename: str = "censys_features_withhostdata.json",
+    reprocess = False
 ) -> dict[str, dict[str, Any]]:
     """
     Processes files to extract Censys features based on regex results and VirusTotal metadata.
@@ -1730,6 +1822,12 @@ def process_censys_file(
     Returns:
       A dictionary with Censys features for each URL and IP address found.
     """
+    logging.info(f"Creating {output_filename} for: {regex_json_path} and {vt_meta_file_path}")
+    path_to_out_file = os.path.join(output_directory, output_filename)
+    if os.path.exists(path_to_out_file) and not reprocess:
+        logging.info(f"Skipping proicessing as {path_to_out_file} already exists")        
+        return  
+
     with open(regex_json_path, "r") as file:
         regex_results = json.load(file).get(file_hash, {})
 
@@ -1738,7 +1836,7 @@ def process_censys_file(
 
     censys_results = censys_features(regex_results, vt_meta_json)
 
-    with open(os.path.join(output_directory, output_flie_name), "w") as file:
+    with open(path_to_out_file, "w") as file:
         json.dump(censys_results, file, indent=4)
     return censys_results
 
@@ -1854,7 +1952,7 @@ async def process_generic_file(
     floss_json_results = "flossresults_reduced_7.json"
     regex_results = "regex_results.json"
     censys_file_name = "censys_features_withhostdata.json"
-    yara_rules_path = "yara_rules/malcat.yar"
+    yara_rules_path = os.path.join("yara_rules", "malcat.yar")
     vt_meta_file = f"{file_hash}.json"
 
     sample_file_path = os.path.join(root_dir, file_hash)
@@ -1863,15 +1961,15 @@ async def process_generic_file(
     vt_meta_file_path = os.path.join(root_dir, vt_meta_file)
 
     # Sequential processing steps
-    process_document_file(sample_file_path, root_dir)
-    await process_floss_file(sample_file_path, root_dir, floss_executable_path)
-    process_yara_rule(sample_file_path, yara_rules_path, root_dir)
-    process_exiftool(sample_file_path, root_dir)
-    process_lief_features(sample_file_path, root_dir)
+    process_document_file(sample_file_path, root_dir, reprocess=False)
+    await process_floss_file(sample_file_path, root_dir, floss_executable_path, reprocess=False)
+    process_yara_rule(sample_file_path, yara_rules_path, root_dir, reprocess=False)
+    process_exiftool(sample_file_path, root_dir, reprocess=False)
+    process_lief_features(sample_file_path, root_dir, reprocess=False)
 
     # Conditional asynchronous processing
     if os.path.exists(floss_json_path):
-        await regex_fun(floss_json_path, file_hash, root_dir, reprocess=True)
+        await regex_fun(floss_json_path, file_hash, root_dir, reprocess=False)
 
     if os.path.exists(regex_json_path):
         process_censys_file(
@@ -1883,9 +1981,9 @@ async def process_generic_file(
 import tqdm
 async def main():
     # FILE_HASH = "8b6380534dcae5830e1e194f8c54466db365246cb8df998686f04818e37d84c1"
-    FLOSS_EXECUTABLE_PATH = "bins/floss2.2.exe"
+    FLOSS_EXECUTABLE_PATH = os.path.join("bins", "floss2.2.exe")
     # UPDATED: BASE_DIR = r"provide\the\folderpath\malware\samples"
-    BASE_DIR = "data/TestSampleswFeatures_10"
+    BASE_DIR = os.path.join("data", "TestSampleswFeatures_10")
 
     for file_hash in tqdm.tqdm(os.listdir(BASE_DIR)):
         root_dir = os.path.join(BASE_DIR, file_hash)

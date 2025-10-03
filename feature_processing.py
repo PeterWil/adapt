@@ -956,37 +956,45 @@ def resources(binary: lief.PE.Binary, file_type: str) -> dict:
         resources_manager = binary.resources_manager
 
         if resources_manager.has_icons:
-            resource_manager["Icon Languages"] = ", ".join(
-                lief.PE.RESOURCE_LANGS(icon.lang).name for icon in resources_manager.icons
-            )            
+            icon_languages = sorted(set(lief.PE.RESOURCE_LANGS(icon.lang).name for icon in sorted(resources_manager.icons, key=lambda icon: lief.PE.RESOURCE_LANGS(icon.lang).name)))
+            resource_manager["Icon Languages"] = ", ".join(language for language in icon_languages)            
 
         # Version blocks may be useful to the model
         if resources_manager.has_version:
-            version_data={}
-            # Do we ever have more than one version?
-            if len(resources_manager.version)!=1:
-                breakpoint()
-
+            version_resources=[]
             for version in resources_manager.version:
+                version_resource = {}
                 # Do we ever have more than one child?
                 if len(version.string_file_info.children)!=1:
                     breakpoint()
 
                 for block in version.string_file_info.children:
                     for entry in block.entries:
-                        version_data[entry.key]=entry.value
-            resource_manager["Version"]=version_data
+                        version_resource[entry.key]=entry.value
+                version_resources.append(version_resource)
+            resource_manager["Version"]=version_resources
 
         if resources_manager.has_dialogs:
-            # NEED TO TRAP ONE OF THESE TO SEE WHAT WE CAN GET FROM IT
+            # Dialog boxes
+            resource_dialogs = []
             for dialog in resources_manager.dialogs:
-                print (f"Dialog: {dialog}")
-            breakpoint
+                resource_dialog = {}
+                resource_dialog["Title"] = dialog.title
+                if isinstance(dialog, lief.PE.ResourceDialogExtended):
+                    resource_dialog["Type"] = 'Extended'
+                    resource_dialog["Typeface"] = dialog.font.typeface
+                else:
+                    assert(isinstance(dialog, lief.PE.ResourceDialogRegular))
+                    resource_dialog["Type"] = 'Regular'
+                    resource_dialog["Typeface"] = dialog.font.name
+                resource_dialog["Items"] = sorted(set(str(item.title) for item in dialog.items))
+                resource_dialogs.append(resource_dialog)
+
+            resource_manager["Dialogs"] = resource_dialogs
 
         if resources_manager.has_accelerator:
-            # NEED TO TRAP ONE OF THESE TO SEE WHAT WE CAN GET FROM IT
-            print("accelerator", resources_manager.accelerator)                
-            breakpoint
+            accelerators = sorted(set(accelerator.ansi_str for accelerator in resources_manager.accelerator))
+            resource_manager["Accelerators"] = ", ".join(accelerator for accelerator in accelerators)   
 
         if resource_manager:
             feature_set["Resource manager"] = resource_manager
@@ -1315,6 +1323,7 @@ def process_lief_features(
         # Iterating over each function and updating the final_result dictionary
         for func in functions:
             try:
+                print(f'Processing {file_path}')
                 result = func(binary, type_of_binary)
                 final_result.update(result)
             except Exception as e:
@@ -1983,7 +1992,9 @@ async def main():
     # FILE_HASH = "8b6380534dcae5830e1e194f8c54466db365246cb8df998686f04818e37d84c1"
     FLOSS_EXECUTABLE_PATH = os.path.join("bins", "floss2.2.exe")
     # UPDATED: BASE_DIR = r"provide\the\folderpath\malware\samples"
-    BASE_DIR = os.path.join("data", "TestSampleswFeatures_10")
+    # BASE_DIR = os.path.join("data", "TestSampleswFeatures_10")
+    # Need to read this from config - also for other file names
+    BASE_DIR = os.path.join("data", "new_destination_RAIDresults")
 
     for file_hash in tqdm.tqdm(os.listdir(BASE_DIR)):
         root_dir = os.path.join(BASE_DIR, file_hash)

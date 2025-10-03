@@ -776,8 +776,7 @@ def exported_functions(binary: lief.Binary, file_type: str) -> dict:
     """
     feature_set = {"Exported functions": []}
     if binary.exported_functions:
-        for function in binary.exported_functions:
-            feature_set["Exported functions"].append(str(function.name))
+        feature_set["Exported functions"] = sorted(set(str(function.name) for function in binary.exported_functions)) 
     else:
         logger.info("Warning: No exported function found")
 
@@ -797,8 +796,7 @@ def imported_functions(binary: lief.Binary, file_type: str) -> dict:
     """
     feature_set = {"Imported functions": []}
     if binary.imported_functions:
-        for function in binary.imported_functions:
-            feature_set["Imported functions"].append(str(function.name))
+        feature_set["Imported functions"] = sorted(set(str(function.name) for function in binary.imported_functions)) 
     else:
         logger.info("Warning: No imported function found")
 
@@ -822,8 +820,7 @@ def print_elf_symbols(symbols: list, title: str) -> dict:
         }
     }
     if symbols:
-        for symbol in symbols:
-            feature_set_sub[title]["Name"].append(symbol.name)
+        feature_set_sub[title]["Name"] = sorted(set(str(symbol.name) for symbol in symbols)) # These can be BYTES so convert to string
     else:
         logger.info(f"Warning: No {title.lower()} found")
 
@@ -848,8 +845,7 @@ def exported_symbols(binary: lief.Binary, file_type: str) -> dict:
         feature_set["Exported symbols"] = {
             "Name": [],
         }
-        for symbol in binary.exported_symbols:
-            feature_set["Exported symbols"]["Name"].append(symbol.name)
+        feature_set["Exported symbols"] = sorted(set(str(symbol.name) for symbol in binary.exported_symbols)) 
     else:
         logger.info("Warning: No exported symbol found")
 
@@ -1033,21 +1029,19 @@ def imports(binary: lief.PE.Binary, file_type: str) -> dict:
     Returns:
         A dictionary containing imports names and functions if available.
     """
-    feature_set = {
-        "Imports Name": [],
-        "Imports Function IAT": [],
-        "Imports Function name": [],
-    }
+    binary_imports = {}
     if file_type in ["EXEfile", "DLLfile"] and binary.imports:
-        for imp in binary.imports:
-            feature_set["Imports Name"].append(imp.name)
-            for function in imp.entries:
-                feature_set["Imports Function IAT"].append(hex(function.iat_address))
-                feature_set["Imports Function name"].append(function.name)
+        # sorted(students, key=lambda student: student.grade)
+        sorted_binary_imports = sorted(binary.imports, key=lambda an_import: an_import.name)
+        for imp in sorted_binary_imports:
+            binary_import_details = {}
+            binary_import_details["IATs"] = [hex(entry.iat_address) for entry in imp.entries]
+            binary_import_details["Names"] = [entry.name for entry in imp.entries]
+            binary_imports[imp.name] = binary_import_details
     else:
         logger.info("Warning: No import found")
 
-    return feature_set
+    return {"Imports": binary_imports}
 
 
 def load_configuration(binary: lief.PE.Binary, file_type: str) -> dict:
@@ -1133,7 +1127,7 @@ def get_sections(binary: lief.Binary, type_of_binary: str) -> dict:
     """
     sections_info = {"Sections": {}}
     if not binary.sections:
-        print("Warning: No section found")
+        print("Warning: No section found") # TODO: Make this a logged event, not a print statement
         return sections_info
 
     rows = []
@@ -1284,7 +1278,7 @@ def process_lief_features(
     path_to_out_file = os.path.join(output_directory, output_filename)
     if os.path.exists(path_to_out_file) and not reprocess:
         logging.info(f"Skipping processing as {path_to_out_file} already exists")        
-        #return  
+        return  
         
     final_result = {}
 
@@ -1321,20 +1315,21 @@ def process_lief_features(
             return final_result
 
         # Iterating over each function and updating the final_result dictionary
+        print(f'Processing {file_path}')
         for func in functions:
             try:
-                print(f'Processing {file_path}')
+
                 result = func(binary, type_of_binary)
                 final_result.update(result)
             except Exception as e:
-                logger.exception("An exception occurred during the feature extraction for '%s': %s", func.__name__, e)
+                logger.exception("An exception occurred during the feature extraction for %s '%s': %s", file_path, func.__name__, e)
 
         # Writing the results to a JSON file
         with open(path_to_out_file, "w", encoding="utf-8") as f:
             json.dump(final_result, f, indent=4)
 
     except Exception as e:
-        logger.exception("An exception occurred during the feature extraction: %s", e)
+        logger.exception("An exception occurred during the feature extraction: %s %s", file_path, e)
 
     return final_result
 
@@ -1974,7 +1969,7 @@ async def process_generic_file(
     await process_floss_file(sample_file_path, root_dir, floss_executable_path, reprocess=False)
     process_yara_rule(sample_file_path, yara_rules_path, root_dir, reprocess=False)
     process_exiftool(sample_file_path, root_dir, reprocess=False)
-    process_lief_features(sample_file_path, root_dir, reprocess=False)
+    process_lief_features(sample_file_path, root_dir, reprocess=True)
 
     # Conditional asynchronous processing
     if os.path.exists(floss_json_path):

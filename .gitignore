@@ -18,6 +18,7 @@ data/
 *.h5
 *.db
 *.sqlite
+*.parquet
 
 # Virtual environments
 venv/

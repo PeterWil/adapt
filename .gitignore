@@ -26,6 +26,9 @@ venv/
 .venv/
 env/
 
+# Ignore the caches
+cache/
+
 # Distribution / packaging
 .Python
 build/

@@ -660,14 +660,15 @@ def check_binary_format(
     if not binary:
         return None
 
-    if binary.format == lief.EXE_FORMATS.PE:
-        if binary.header.characteristics & lief.PE.HEADER_CHARACTERISTICS.DLL:
+    # OLD CONSTANTS HAVE CHANGED
+    if binary.format == lief.PE.Binary.FORMATS.PE: # was lief.EXE_FORMATS.PE
+        if binary.header.characteristics & lief.PE.Header.CHARACTERISTICS.DLL.value:
             return "DLLfile"
         else:
             return "EXEfile"
-    elif binary.format == lief.EXE_FORMATS.MACHO:
+    elif binary.format == lief.PE.Binary.FORMATS.MACHO: # was lief.EXE_FORMATS.MACHO
         return "machofile"
-    elif binary.format == lief.EXE_FORMATS.ELF:
+    elif binary.format == lief.PE.Binary.FORMATS.ELF: # was EXE_FORMATS.ELF
         return "elffile"
 
     return None
@@ -829,10 +830,10 @@ def resources(binary: lief.PE.Binary, file_type: str) -> dict:
         resource_manager = {}
         if binary.resources_manager.has_type:
             resource_manager["Type"] = ", ".join(
-                str(rType) for rType in binary.resources_manager.types_available
+                str(rType) for rType in binary.resources_manager.types
             )
 
-        if binary.resources_manager.langs_available:
+        '''if binary.resources_manager.langs_available:
             langs_available = ", ".join(
                 str(lang) for lang in binary.resources_manager.langs_available
             )
@@ -841,7 +842,7 @@ def resources(binary: lief.PE.Binary, file_type: str) -> dict:
             )
             resource_manager.update(
                 {"Language": langs_available, "Sub-language": sublangs_available}
-            )
+            )'''
 
         if resource_manager:
             feature_set["Resource manager"] = resource_manager

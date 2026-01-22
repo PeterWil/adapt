@@ -31,6 +31,10 @@ from oletools.oleid import OleID
 from oletools.olevba import VBA_Parser
 from PyPDF2 import PdfReader
 
+# Fetching from censys is both time consuming and expensive in terms of credits.
+# We will cache the raw responses so that we can still change what we extract without having to refetch
+import diskcache as dc
+
 NON_COMMERCIAL_API_LIMIT = 1000
 
 
@@ -41,6 +45,12 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
+
+# Set up the Censys caching
+# It's worth caching the Censys data as it's expensive (charged), and mulitple different malware may use the same IPs etc.
+censys_ip_data_cache = dc.Cache(os.path.join('cache', 'censys_ip_data'))
+censys_host_data_cache = dc.Cache(os.path.join('cache', 'censys_host_data'))
+censys_certificate_data_cache = dc.Cache(os.path.join('cache', 'censys_certificate_data'))
 
 exif_tool_path = "bins/exiftool.exe"
 floss_executable_path = "bins/floss2.2.exe"
@@ -1537,7 +1547,7 @@ async def regex_fun(path_to_json: str, file_hash: str, subdir: str, reprocess: b
     except Exception as e:
         logging.exception("Exception occurred while processing file %s: %s", path_to_json, e)
 
-
+@censys_ip_data_cache.memoize()
 def censys_ip_data(ip: str) -> dict:
     """
     Fetches host data for a given IP address from Censys.
@@ -1558,7 +1568,7 @@ def censys_ip_data(ip: str) -> dict:
         print(f"Error fetching data for IP {ip}: {str(e)}")
         return {}
 
-
+@censys_host_data_cache.memoize()
 def censys_host_data(domain_name: str) -> list:
     """
     Fetches host data for a given domain name from Censys.
@@ -1576,7 +1586,7 @@ def censys_host_data(domain_name: str) -> list:
 
     return domain_host_result
 
-
+@censys_certificate_data_cache.memoize()
 def censys_certificate_data(
     domain_name: str, sample_left_date: datetime, sample_right_date: str = "*"
 ) -> list:
